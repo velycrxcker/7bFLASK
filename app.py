@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request
+from flask import Flask, render_template, request, jsonify  # Asegúrate de que jsonify esté importado
 import pusher
 import mysql.connector
 import datetime
@@ -57,4 +57,3 @@ def guardar_usuario():
 
 if __name__ == "__main__":
     app.run(debug=True)
-
