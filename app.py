@@ -14,6 +14,10 @@ con = mysql.connector.connect(
 
 app = Flask(__name__)
 
+@app.route("/")
+def index():
+    return render_template("app.html")
+
 @app.route("/registro")
 def registro():
     return render_template("registro-usuario.html")
@@ -30,5 +34,25 @@ def buscar_usuarios():
     con.close()
     return registros
 
+@app.route("/usuarios/guardar", methods=["POST"])
+def guardar_usuario():
+    id_usuario = request.form["txtIdUsuario"]
+    nombre_usuario = request.form["txtNombreUsuario"]
+    contrasena = request.form["txtContrasena"]
+
+    if not con.is_connected():
+        con.reconnect()
+
+    cursor = con.cursor()
+    sql = "INSERT INTO tst0_usuarios (Id_Usuario, Nombre_Usuario, Contraseña) VALUES (%s, %s, %s)"
+    val = (id_usuario, nombre_usuario, contrasena)
+    cursor.execute(sql, val)
+
+    con.commit()
+    con.close()
+
+    return f"Usuario {nombre_usuario} guardado correctamente."
+
 if __name__ == "__main__":
     app.run(debug=True)
+
