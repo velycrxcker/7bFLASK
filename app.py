@@ -3,6 +3,7 @@ import pusher
 import mysql.connector
 import datetime
 import pytz
+
 # Conexión a la base de datos
 con = mysql.connector.connect(
     host="185.232.14.52",
@@ -31,7 +32,10 @@ def buscar_usuarios():
     registros = cursor.fetchall()
 
     con.close()
-    return {"data": registros}  # Cambiado para enviar en formato JSON
+
+    # Convertir registros a un formato más fácil de usar
+    usuarios = [{"Id_Usuario": row[0], "Nombre_Usuario": row[1], "Contraseña": row[2]} for row in registros]
+    return jsonify(usuarios)  # Enviar respuesta como JSON
 
 @app.route("/usuarios/guardar", methods=["POST"])
 def guardar_usuario():
@@ -53,3 +57,4 @@ def guardar_usuario():
 
 if __name__ == "__main__":
     app.run(debug=True)
+
