@@ -14,10 +14,6 @@
     <div class="container">
         <form method="post" id="frmUsuario" class="formulario">
             <div class="mb-1">
-                <label id="lblIdUsuario" for="txtIdUsuario">Id Usuario:</label>
-                <input type="number" name="txtIdUsuario" id="txtIdUsuario" class="form-control" required="true">
-            </div>
-            <div class="mb-1">
                 <label id="lblNombreUsuario" for="txtNombreUsuario">Nombre Usuario:</label>
                 <input type="text" name="txtNombreUsuario" id="txtNombreUsuario" class="form-control" required="true" minlength="3" maxlength="25">
             </div>
@@ -37,6 +33,7 @@
                 <tr>
                     <th>Id Usuario</th>
                     <th>Nombre Usuario</th>
+                    <th>Contraseña</th>
                 </tr>
             </thead>
             <tbody id="tbodyUsuarios"></tbody>
@@ -49,14 +46,15 @@
         window.addEventListener("load", function (event) {
             // Función para cargar los datos de usuarios
             function buscar() {
-                $.get("/usuarios/buscar", function (respuesta) {
+                $.get("/buscar_usuarios", function (respuesta) {
                     $("#tbodyUsuarios").html("");
 
                     for (var x in respuesta) {
                         var usuario = respuesta[x];
                         $("#tbodyUsuarios").append(`<tr>
-                            <td>${usuario.id_usuario}</td>
-                            <td>${usuario.nombre_usuario}</td>
+                            <td>${usuario[0]}</td>
+                            <td>${usuario[1]}</td>
+                            <td>${usuario[2]}</td>
                         </tr>`);
                     }
                 });
