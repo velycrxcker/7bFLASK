@@ -28,7 +28,7 @@ def buscar_usuarios():
         con.reconnect()
 
     cursor = con.cursor()
-    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios ORDER BY Id_Usuario DESC")
+    cursor.execute("SELECT * FROM tst0_usuarios ORDER BY Id_Usuario DESC")
     registros = cursor.fetchall()
     con.close()
 
