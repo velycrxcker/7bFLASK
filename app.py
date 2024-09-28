@@ -1,4 +1,4 @@
-from flask import Flask, render_template, request, jsonify  # Asegúrate de que jsonify esté importado
+from flask import Flask, render_template, request, jsonify
 import pusher
 import mysql.connector
 import datetime
@@ -30,7 +30,6 @@ def buscar_usuarios():
     cursor = con.cursor()
     cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios ORDER BY Id_Usuario DESC")
     registros = cursor.fetchall()
-
     con.close()
 
     # Convertir registros a un formato más fácil de usar
