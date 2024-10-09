@@ -45,57 +45,59 @@
         window.addEventListener("load", function (event) {
             function buscarUsuarios() {
                 $.get("/buscar_usuarios", function (respuesta) {
-                    $("#tbodyUsuarios").html("")
+                    console.log(respuesta); // Para ver qué datos se están devolviendo
+                    $("#tbodyUsuarios").html("");
 
                     for (var x in respuesta) {
-                        var usuario = respuesta[x]
-
+                        var usuario = respuesta[x];
                         $("#tbodyUsuarios").append(`<tr>
                             <td>${usuario["Nombre_Usuario"]}</td>
                             <td>
                                 <button class="btn btn-primary btn-editar" data-id="${usuario["Id_Usuario"]}">Editar</button>
                                 <button class="btn btn-danger btn-eliminar" data-id="${usuario["Id_Usuario"]}">Eliminar</button>
                             </td>
-                        </tr>`)
+                        </tr>`);
                     }
-                })
+                });
             }
 
-            buscarUsuarios()
+            buscarUsuarios();
 
             $(document).on("click", ".btn-editar", function (event) {
-                var id = $(this).attr("data-id")
+                var id = $(this).attr("data-id");
 
                 $.get("/editar_usuario", {id: id}, function (respuesta) {
-                    var usuario = respuesta[0]
+                    var usuario = respuesta[0];
 
-                    $("#id_usuario").val(usuario["Id_Usuario"])
-                    $("#nombre_usuario").val(usuario["Nombre_Usuario"])
-                    $("#contrasena").val(usuario["Contraseña"])
-                })
-            })
+                    $("#id_usuario").val(usuario["Id_Usuario"]);
+                    $("#nombre_usuario").val(usuario["Nombre_Usuario"]);
+                    $("#contrasena").val(usuario["Contraseña"]);
+                });
+            });
 
             $(document).on("click", ".btn-eliminar", function (event) {
                 if (!confirm("¿Quieres eliminar este registro?")) {
-                    return
+                    return;
                 }
 
-                var id = $(this).attr("data-id")
+                var id = $(this).attr("data-id");
 
-                $.post("/eliminar_usuario", {id: id})
-            })
+                $.post("/eliminar_usuario", {id: id}, function() {
+                    buscarUsuarios(); // Llama a buscarUsuarios después de eliminar para actualizar la tabla
+                });
+            });
 
             $("#frmUsuarios").submit(function (event) {
-                event.preventDefault()
+                event.preventDefault();
 
                 $.post("/guardar_usuario", $(this).serialize(), function (respuesta) {
-                    $("#frmUsuarios").get(0).reset()
-                    buscarUsuarios()
-                })
+                    $("#frmUsuarios").get(0).reset();
+                    buscarUsuarios();
+                });
             }).on("reset", function (event) {
-                $("#id_usuario").val("")
-            })
-        })
+                $("#id_usuario").val("");
+            });
+        });
     </script>
 </body>
 </html>
