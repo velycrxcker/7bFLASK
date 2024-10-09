@@ -5,10 +5,10 @@ app = Flask(__name__)
 
 # Configuración de la conexión a la base de datos
 con = mysql.connector.connect(
-    host="localhost",
-    user="tu_usuario",
-    password="tu_contraseña",
-    database="tu_base_de_datos"
+    host="185.232.14.52",
+    database="u760464709_tst_sep",
+    user="u760464709_tst_sep_usr",
+    password="dJ0CIAFF="
 )
 
 # Ruta principal para cargar la página del formulario de usuarios
