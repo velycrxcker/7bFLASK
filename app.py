@@ -23,12 +23,10 @@ def buscar_usuarios():
         con.reconnect()
 
     cursor = con.cursor(dictionary=True)
-    cursor.execute("""
-    SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios
-    """)
+    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios")
     usuarios = cursor.fetchall()
+    cursor.close()
 
-    con.close()
     return make_response(jsonify(usuarios))
 
 # Ruta para guardar o actualizar un usuario
@@ -57,10 +55,10 @@ def guardar_usuario():
         VALUES (%s, %s)
         """
         val = (nombre_usuario, contrasena)
-    
+
     cursor.execute(sql, val)
     con.commit()
-    con.close()
+    cursor.close()
 
     return make_response(jsonify({}))
 
@@ -73,12 +71,9 @@ def editar_usuario():
     id_usuario = request.args["id"]
 
     cursor = con.cursor(dictionary=True)
-    cursor.execute("""
-    SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios
-    WHERE Id_Usuario = %s
-    """, (id_usuario,))
-    usuario = cursor.fetchall()
-    con.close()
+    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios WHERE Id_Usuario = %s", (id_usuario,))
+    usuario = cursor.fetchone()
+    cursor.close()
 
     return make_response(jsonify(usuario))
 
@@ -91,11 +86,9 @@ def eliminar_usuario():
     id_usuario = request.form["id"]
 
     cursor = con.cursor()
-    cursor.execute("""
-    DELETE FROM tst0_usuarios WHERE Id_Usuario = %s
-    """, (id_usuario,))
+    cursor.execute("DELETE FROM tst0_usuarios WHERE Id_Usuario = %s", (id_usuario,))
     con.commit()
-    con.close()
+    cursor.close()
 
     return make_response(jsonify({}))
 
