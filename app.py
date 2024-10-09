@@ -4,15 +4,12 @@ import mysql.connector
 app = Flask(__name__)
 
 # Configuración de la conexión a la base de datos
-try:
-    con = mysql.connector.connect(
-        host="185.232.14.52",
-        database="u760464709_tst_sep",
-        user="u760464709_tst_sep_usr",
-        password="dJ0CIAFF="
-    )
-except mysql.connector.Error as err:
-    print("Error al conectar a la base de datos:", err)
+con = mysql.connector.connect(
+    host="185.232.14.52",
+    database="u760464709_tst_sep",
+    user="u760464709_tst_sep_usr",
+    password="dJ0CIAFF="
+)
 
 # Ruta principal para cargar la página del formulario de usuarios
 @app.route("/")
@@ -26,9 +23,12 @@ def buscar_usuarios():
         con.reconnect()
 
     cursor = con.cursor(dictionary=True)
-    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios")
+    cursor.execute("""
+    SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios
+    """)
     usuarios = cursor.fetchall()
-    cursor.close()  # Cierra el cursor después de usarlo
+
+    con.close()
     return make_response(jsonify(usuarios))
 
 # Ruta para guardar o actualizar un usuario
@@ -60,7 +60,7 @@ def guardar_usuario():
     
     cursor.execute(sql, val)
     con.commit()
-    cursor.close()  # Cierra el cursor después de usarlo
+    con.close()
 
     return make_response(jsonify({}))
 
@@ -73,9 +73,12 @@ def editar_usuario():
     id_usuario = request.args["id"]
 
     cursor = con.cursor(dictionary=True)
-    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios WHERE Id_Usuario = %s", (id_usuario,))
+    cursor.execute("""
+    SELECT Id_Usuario, Nombre_Usuario, Contraseña FROM tst0_usuarios
+    WHERE Id_Usuario = %s
+    """, (id_usuario,))
     usuario = cursor.fetchall()
-    cursor.close()  # Cierra el cursor después de usarlo
+    con.close()
 
     return make_response(jsonify(usuario))
 
@@ -88,11 +91,35 @@ def eliminar_usuario():
     id_usuario = request.form["id"]
 
     cursor = con.cursor()
-    cursor.execute("DELETE FROM tst0_usuarios WHERE Id_Usuario = %s", (id_usuario,))
+    cursor.execute("""
+    DELETE FROM tst0_usuarios WHERE Id_Usuario = %s
+    """, (id_usuario,))
     con.commit()
-    cursor.close()  # Cierra el cursor después de usarlo
+    con.close()
 
     return make_response(jsonify({}))
+
+# Nueva ruta para buscar experiencias en la tabla tst0_experiencias
+@app.route("/buscar")
+def buscar():
+    if not con.is_connected():
+        con.reconnect()
+
+    cursor = con.cursor()
+    cursor.execute("SELECT Nombre_Apellido, Comentario, Calificacion FROM tst0_experiencias ORDER BY Id_Experiencia DESC")
+    registros = cursor.fetchall()
+    cursor.close()
+
+    # Convertir los registros en una lista de diccionarios
+    experiencias = [
+        {
+            "Nombre_Apellido": registro[0],
+            "Comentario": registro[1],
+            "Calificacion": registro[2]
+        }
+        for registro in registros
+    ]
+    return jsonify(experiencias)
 
 # Iniciar la aplicación de Flask
 if __name__ == "__main__":
