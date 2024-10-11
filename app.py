@@ -1,61 +1,78 @@
-from flask import Flask, render_template, request, redirect, jsonify
-import sqlite3
+from flask import Flask, render_template, request, jsonify, make_response
+import mysql.connector
+import datetime
 
 app = Flask(__name__)
 
-# Conectar a la base de datos
-def conectar_bd():
-    conn = sqlite3.connect('usuarios.db')
-    return conn
+con = mysql.connector.connect(
+    host="185.232.14.52",
+    database="u760464709_tst_sep",
+    user="u760464709_tst_sep_usr",
+    password="dJ0CIAFF="
+)
 
-# Ruta principal para mostrar el formulario
-@app.route('/')
+@app.route("/")
 def index():
-    return render_template('registro-usuario.html')
+    return render_template("app.html")
 
-# Ruta para registrar un usuario
-@app.route('/registrar', methods=['POST'])
-def registrar_usuario():
-    nombre_usuario = request.form['nombre_usuario']
-    contrasena = request.form['contrasena']
+@app.route("/buscar")
+def buscar():
+    if not con.is_connected():
+        con.reconnect()
 
-    conn = conectar_bd()
-    cursor = conn.cursor()
-
-    if request.form['id'] == '':  # Nuevo registro
-        cursor.execute("INSERT INTO tst0_usuarios (Nombre_Usuario, Contrasena) VALUES (?, ?)", (nombre_usuario, contrasena))
-    else:  # Actualizar registro existente
-        id_usuario = request.form['id']
-        cursor.execute("UPDATE tst0_usuarios SET Nombre_Usuario = ?, Contrasena = ? WHERE Id_Usuario = ?", (nombre_usuario, contrasena, id_usuario))
-
-    conn.commit()
-    conn.close()
-
-    return redirect('/')
-
-# Ruta para buscar usuarios
-@app.route('/buscar', methods=['GET'])
-def buscar_usuario():
-    buscar_nombre = request.args.get('buscar_nombre', '')
-
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("SELECT Id_Usuario, Nombre_Usuario FROM tst0_usuarios WHERE Nombre_Usuario LIKE ?", ('%' + buscar_nombre + '%',))
+    cursor = con.cursor(dictionary=True)
+    cursor.execute("SELECT Id, Nombre, Email FROM usuarios ORDER BY Id DESC")
     usuarios = cursor.fetchall()
-    conn.close()
+    con.close()
 
     return jsonify(usuarios)
 
-# Ruta para eliminar un usuario
-@app.route('/eliminar/<int:id>', methods=['POST'])
-def eliminar_usuario(id):
-    conn = conectar_bd()
-    cursor = conn.cursor()
-    cursor.execute("DELETE FROM tst0_usuarios WHERE Id_Usuario = ?", (id,))
-    conn.commit()
-    conn.close()
+@app.route("/guardar", methods=["POST"])
+def guardar():
+    if not con.is_connected():
+        con.reconnect()
 
-    return redirect('/')
+    id = request.form.get("id")
+    nombre = request.form["nombre"]
+    email = request.form["email"]
 
-if __name__ == '__main__':
-    app.run(debug=True)
+    cursor = con.cursor()
+
+    if id:
+        sql = "UPDATE usuarios SET Nombre=%s, Email=%s WHERE Id=%s"
+        val = (nombre, email, id)
+    else:
+        sql = "INSERT INTO usuarios (Nombre, Email) VALUES (%s, %s)"
+        val = (nombre, email)
+
+    cursor.execute(sql, val)
+    con.commit()
+    con.close()
+
+    return make_response(jsonify({}))
+
+@app.route("/editar", methods=["GET"])
+def editar():
+    if not con.is_connected():
+        con.reconnect()
+
+    id = request.args["id"]
+    cursor = con.cursor(dictionary=True)
+    cursor.execute("SELECT Id, Nombre, Email FROM usuarios WHERE Id=%s", (id,))
+    usuario = cursor.fetchone()
+    con.close()
+
+    return jsonify(usuario)
+
+@app.route("/eliminar", methods=["POST"])
+def eliminar():
+    if not con.is_connected():
+        con.reconnect()
+
+    id = request.form["id"]
+    cursor = con.cursor()
+    cursor.execute("DELETE FROM usuarios WHERE Id=%s", (id,))
+    con.commit()
+    con.close()
+
+    return jsonify({})
