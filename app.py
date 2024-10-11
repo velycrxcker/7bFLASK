@@ -2,8 +2,6 @@ from flask import Flask, render_template, request, jsonify, make_response
 import mysql.connector
 import datetime
 
-app = Flask(__name__)
-
 con = mysql.connector.connect(
     host="185.232.14.52",
     database="u760464709_tst_sep",
@@ -11,39 +9,41 @@ con = mysql.connector.connect(
     password="dJ0CIAFF="
 )
 
+app = Flask(__name__)
+
 @app.route("/")
 def index():
     return render_template("app.html")
 
-@app.route("/buscar")
-def buscar():
+@app.route("/buscar_usuarios")
+def buscar_usuarios():
     if not con.is_connected():
         con.reconnect()
 
     cursor = con.cursor(dictionary=True)
-    cursor.execute("SELECT Id, Nombre, Email FROM usuarios ORDER BY Id DESC")
-    usuarios = cursor.fetchall()
+    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contrasena FROM tst0_usuarios ORDER BY Id_Usuario DESC")
+    registros = cursor.fetchall()
     con.close()
 
-    return jsonify(usuarios)
+    return make_response(jsonify(registros))
 
-@app.route("/guardar", methods=["POST"])
-def guardar():
+@app.route("/guardar_usuario", methods=["POST"])
+def guardar_usuario():
     if not con.is_connected():
         con.reconnect()
 
-    id = request.form.get("id")
+    id = request.form["id"]
     nombre = request.form["nombre"]
-    email = request.form["email"]
+    contrasena = request.form["contrasena"]
 
     cursor = con.cursor()
 
-    if id:
-        sql = "UPDATE usuarios SET Nombre=%s, Email=%s WHERE Id=%s"
-        val = (nombre, email, id)
-    else:
-        sql = "INSERT INTO usuarios (Nombre, Email) VALUES (%s, %s)"
-        val = (nombre, email)
+    if id:  # Si se proporciona un id, es una actualización
+        sql = "UPDATE tst0_usuarios SET Nombre_Usuario = %s, Contrasena = %s WHERE Id_Usuario = %s"
+        val = (nombre, contrasena, id)
+    else:  # Si no hay id, es una inserción
+        sql = "INSERT INTO tst0_usuarios (Nombre_Usuario, Contrasena) VALUES (%s, %s)"
+        val = (nombre, contrasena)
 
     cursor.execute(sql, val)
     con.commit()
@@ -51,28 +51,33 @@ def guardar():
 
     return make_response(jsonify({}))
 
-@app.route("/editar", methods=["GET"])
-def editar():
+@app.route("/editar_usuario", methods=["GET"])
+def editar_usuario():
     if not con.is_connected():
         con.reconnect()
 
     id = request.args["id"]
+
     cursor = con.cursor(dictionary=True)
-    cursor.execute("SELECT Id, Nombre, Email FROM usuarios WHERE Id=%s", (id,))
-    usuario = cursor.fetchone()
+    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contrasena FROM tst0_usuarios WHERE Id_Usuario = %s", (id,))
+    registros = cursor.fetchall()
     con.close()
 
-    return jsonify(usuario)
+    return make_response(jsonify(registros))
 
-@app.route("/eliminar", methods=["POST"])
-def eliminar():
+@app.route("/eliminar_usuario", methods=["POST"])
+def eliminar_usuario():
     if not con.is_connected():
         con.reconnect()
 
     id = request.form["id"]
-    cursor = con.cursor()
-    cursor.execute("DELETE FROM usuarios WHERE Id=%s", (id,))
+
+    cursor = con.cursor(dictionary=True)
+    cursor.execute("DELETE FROM tst0_usuarios WHERE Id_Usuario = %s", (id,))
     con.commit()
     con.close()
 
-    return jsonify({})
+    return make_response(jsonify({}))
+
+if __name__ == "__main__":
+    app.run(debug=True)
