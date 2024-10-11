@@ -3,134 +3,83 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet" integrity="sha384-QWTKZyjpPEjISv5WaRU9OFeRpok6YctnYmDr5pNlyT2bRjXh0JMhjY6hW+ALEwIH" crossorigin="anonymous">
-    <script src="https://code.jquery.com/jquery-3.7.1.min.js" integrity="sha256-/JqT3SQfawRcv/BIHPThkBvs0OEvtFFmqPF/lYI/Cxo=" crossorigin="anonymous"></script>
-    <title>App Usuarios</title>
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <script src="https://code.jquery.com/jquery-3.7.1.min.js"></script>
+    <title>Registro de Usuarios</title>
 </head>
 <body>
     <div class="container">
-        <form id="frmUsuarios" method="post">
-            <input type="hidden" id="id_usuario" name="id_usuario">
+        <form id="frmUsuario" method="post">
+            <input type="hidden" id="id" name="id">
             <div class="mb-1">
-                <label for="nombre_usuario">Nombre de Usuario</label>
-                <input type="text" id="nombre_usuario" name="nombre_usuario" class="form-control" required>
+                <label for="nombre">Nombre y Apellido</label>
+                <input type="text" id="nombre" name="nombre" class="form-control" required>
             </div>
             <div class="mb-1">
-                <label for="contrasena">Contraseña</label>
-                <input type="password" id="contrasena" name="contrasena" class="form-control" required>
+                <label for="email">Correo Electrónico</label>
+                <input type="email" id="email" name="email" class="form-control" required>
             </div>
             <div class="mb-1">
                 <button id="guardar" name="guardar" class="btn btn-dark">Guardar</button>
                 <button type="reset" id="cancelar" name="cancelar" class="btn btn-link">Cancelar</button>
             </div>
         </form>
-        
         <table class="table table-sm">
             <thead>
                 <tr>
-                    <th>Nombre de Usuario</th>
-                    <th>Acciones</th>
+                    <th>Nombre</th>
+                    <th>Email</th>
+                    <th></th>
                 </tr>
             </thead>
             <tbody id="tbodyUsuarios"></tbody>
         </table>
-
-        <h3>Experiencias</h3>
-        <table class="table table-sm" id="tablaExperiencias">
-            <thead>
-                <tr>
-                    <th>Nombre y Apellido</th>
-                    <th>Comentario</th>
-                    <th>Calificación</th>
-                    <th>Acciones</th>
-                </tr>
-            </thead>
-            <tbody></tbody>
-        </table>
     </div>
 
-    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js" integrity="sha384-YvpcrYf0tY3lHB60NNkmXc5s9fDVZLESaAA55NDzOxhy9GkcIdslK1eN7N6jIeHz" crossorigin="anonymous"></script>
-
     <script>
-        window.addEventListener("load", function (event) {
-            function buscarUsuarios() {
-                $.get("/buscar_usuarios", function (respuesta) {
-                    $("#tbodyUsuarios").html("");
-
-                    for (var x in respuesta) {
-                        var usuario = respuesta[x];
-
-                        $("#tbodyUsuarios").append(`<tr>
-                            <td>${usuario["Nombre_Usuario"]}</td>
-                            <td>
-                                <button class="btn btn-primary btn-editar" data-id="${usuario["Id_Usuario"]}">Editar</button>
-                                <button class="btn btn-danger btn-eliminar" data-id="${usuario["Id_Usuario"]}">Eliminar</button>
-                            </td>
-                        </tr>`);
-                    }
+        function buscar() {
+            $.get("/buscar", function (respuesta) {
+                $("#tbodyUsuarios").html("");
+                respuesta.forEach(function(usuario) {
+                    $("#tbodyUsuarios").append(`<tr>
+                        <td>${usuario["Nombre"]}</td>
+                        <td>${usuario["Email"]}</td>
+                        <td>
+                            <button class="btn btn-primary btn-editar" data-id="${usuario["Id"]}">Editar</button>
+                            <button class="btn btn-danger btn-eliminar" data-id="${usuario["Id"]}">Eliminar</button>
+                        </td>
+                    </tr>`);
                 });
+            });
+        }
+
+        buscar();
+
+        $(document).on("click", ".btn-editar", function () {
+            const id = $(this).attr("data-id");
+            $.get("/editar", {id: id}, function (usuario) {
+                $("#id").val(usuario.Id);
+                $("#nombre").val(usuario.Nombre);
+                $("#email").val(usuario.Email);
+            });
+        });
+
+        $(document).on("click", ".btn-eliminar", function () {
+            if (!confirm("¿Quieres eliminar este usuario?")) {
+                return;
             }
-
-            buscarUsuarios();
-
-            $(document).on("click", ".btn-editar", function (event) {
-                var id = $(this).attr("data-id");
-
-                $.get("/editar_usuario", {id: id}, function (respuesta) {
-                    var usuario = respuesta[0];
-
-                    $("#id_usuario").val(usuario["Id_Usuario"]);
-                    $("#nombre_usuario").val(usuario["Nombre_Usuario"]);
-                    $("#contrasena").val(usuario["Contraseña"]);
-                });
+            const id = $(this).attr("data-id");
+            $.post("/eliminar", {id: id}, function () {
+                buscar();
             });
+        });
 
-            $(document).on("click", ".btn-eliminar", function (event) {
-                if (!confirm("¿Quieres eliminar este registro?")) {
-                    return;
-                }
-
-                var id = $(this).attr("data-id");
-
-                $.post("/eliminar_usuario", {id: id}, function() {
-                    buscarUsuarios(); // Actualiza la lista de usuarios
-                });
+        $("#frmUsuario").submit(function (event) {
+            event.preventDefault();
+            $.post("/guardar", $(this).serialize(), function () {
+                $("#frmUsuario").get(0).reset();
+                buscar();
             });
-
-            $("#frmUsuarios").submit(function (event) {
-                event.preventDefault();
-
-                $.post("/guardar_usuario", $(this).serialize(), function (respuesta) {
-                    $("#frmUsuarios").get(0).reset();
-                    buscarUsuarios(); // Actualiza la lista de usuarios
-                });
-            }).on("reset", function (event) {
-                $("#id_usuario").val("");
-            });
-
-            function buscar() {
-                $.ajax({
-                    url: "/buscar",
-                    method: "GET",
-                    success: function (registros) {
-                        let tabla = '';
-                        registros.forEach(function (exp) {
-                            tabla += `<tr>
-                                <td>${exp.Nombre_Apellido}</td>
-                                <td>${exp.Comentario}</td>
-                                <td>${exp.Calificacion}</td>
-                                <td>
-                                    <button class="btn btn-info" onclick="editarExperiencia('${exp.Nombre_Apellido}', '${exp.Comentario}', ${exp.Calificacion})">Editar</button>
-                                    <button class="btn btn-danger" onclick="eliminarExperiencia('${exp.Nombre_Apellido}')">Eliminar</button>
-                                </td>
-                            </tr>`;
-                        });
-                        $("#tablaExperiencias tbody").html(tabla);
-                    }
-                });
-            }
-
-            buscar(); // Llama a la función buscar cuando la página carga
         });
     </script>
 </body>
