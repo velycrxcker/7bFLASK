@@ -2,6 +2,8 @@ from flask import Flask, render_template, request, jsonify, make_response
 import mysql.connector
 import datetime
 
+from flask_cors import CORS, cross_origin
+
 con = mysql.connector.connect(
     host="185.232.14.52",
     database="u760464709_tst_sep",
