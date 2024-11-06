@@ -1,86 +1,110 @@
-from flask import Flask, render_template, request, jsonify, make_response
-import mysql.connector
-import datetime
+import flet as ft
 
-from flask_cors import CORS, cross_origin
+# pip install requests
+import requests
 
-con = mysql.connector.connect(
-    host="185.232.14.52",
-    database="u760464709_tst_sep",
-    user="u760464709_tst_sep_usr",
-    password="dJ0CIAFF="
-)
+def main(page: ft.Page):
+    def viewBuscar():
+        print("view buscar")
+        row_lbl_temperatura.visible = False
+        row_txt_temperatura.visible = False
+        row_lbl_humedad.visible     = False
+        row_txt_humedad.visible     = False
+        row_btn_guardar.visible     = False
 
-app = Flask(__name__)
-CORS(app)
+        lbl_temperatura.visible = False
+        txt_temperatura.visible = False
+        lbl_humedad.visible     = False
+        txt_humedad.visible     = False
 
-@app.route("/")
-def index():
-    return render_template("app.html")
+    def navigation_bar_change(event):
+        print("navigation bar change")
+        print(event)
 
-@app.route("/buscar_usuarios")
-def buscar_usuarios():
-    if not con.is_connected():
-        con.reconnect()
+        data = event.data
 
-    cursor = con.cursor(dictionary=True)
-    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contrasena FROM tst0_usuarios ORDER BY Id_Usuario DESC")
-    registros = cursor.fetchall()
-    con.close()
+        if data == "1":
+            viewBuscar()
 
-    return make_response(jsonify(registros))
+    def btn_guardar_click(event):
+        url     = "https://flask-ovh6.onrender.com/guardar"
+        payload = {
+            "id": "",
+            "temperatura": txt_temperatura.value,
+            "humedad": txt_humedad.value
+        }
 
-@app.route("/guardar_usuario", methods=["POST"])
-def guardar_usuario():
-    if not con.is_connected():
-        con.reconnect()
+        print("payload")
+        print(payload)
 
-    id = request.form["id"]
-    nombre = request.form["nombre"]
-    contrasena = request.form["contrasena"]
+        x = requests.post(url, data=payload)
 
-    cursor = con.cursor()
+        print("response")
+        print(x.text)
 
-    if id:  # Si se proporciona un id, es una actualización
-        sql = "UPDATE tst0_usuarios SET Nombre_Usuario = %s, Contrasena = %s WHERE Id_Usuario = %s"
-        val = (nombre, contrasena, id)
-    else:  # Si no hay id, es una inserción
-        sql = "INSERT INTO tst0_usuarios (Nombre_Usuario, Contrasena) VALUES (%s, %s)"
-        val = (nombre, contrasena)
+        txt_temperatura.value = ""
+        txt_humedad.value     = ""
 
-    cursor.execute(sql, val)
-    con.commit()
-    con.close()
+    lbl_temperatura = ft.Text(value="Temperatura:")
+    lbl_humedad     = ft.Text(value="Humedad:")
 
-    return make_response(jsonify({}))
+    txt_temperatura = ft.TextField(value="", text_align=ft.TextAlign.LEFT, width=200, hint_text="Temperatura:")
+    txt_humedad     = ft.TextField(value="", text_align=ft.TextAlign.LEFT, width=200, hint_text="Humedad:")
+    btn_guardar     = ft.ElevatedButton(text="Guardar", on_click=btn_guardar_click)
 
-@app.route("/editar_usuario", methods=["GET"])
-def editar_usuario():
-    if not con.is_connected():
-        con.reconnect()
+    # RowProductA1
+    row_lbl_temperatura = ft.Row([
+        ft.Container(expand=1, content=ft.Text("")),
+        ft.Container(expand=3, content=ft.Row([lbl_temperatura])),
+        ft.Container(expand=1, content=ft.Text(""))
+    ])
+    row_txt_temperatura =ft.Row([
+        ft.Container(expand=1, content=ft.Text("")),
+        ft.Container(expand=3, content=ft.Row([txt_temperatura])),
+        ft.Container(expand=1, content=ft.Text(""))
+    ])
 
-    id = request.args["id"]
+    # RowProductA2
+    row_lbl_humedad = ft.Row([
+        ft.Container(expand=1, content=ft.Text("")),
+        ft.Container(expand=3, content=ft.Row([lbl_humedad])),
+        ft.Container(expand=1, content=ft.Text(""))
+    ])
 
-    cursor = con.cursor(dictionary=True)
-    cursor.execute("SELECT Id_Usuario, Nombre_Usuario, Contrasena FROM tst0_usuarios WHERE Id_Usuario = %s", (id,))
-    registros = cursor.fetchall()
-    con.close()
+    # RowProductB1
+    row_txt_humedad = ft.Row([
+        ft.Container(expand=1, content=ft.Text("")),
+        ft.Container(expand=3, content=ft.Row([txt_humedad])),
+        ft.Container(expand=1, content=ft.Text(""))
+    ])
+    row_btn_guardar = ft.Row([
+        ft.Container(expand=1, content=ft.Text("")),
+        ft.Container(expand=3, content=ft.Row([btn_guardar])),
+        ft.Container(expand=1, content=ft.Text(""))
+    ])
 
-    return make_response(jsonify(registros))
+    page.title    = "App"
+    page.adaptive = True
 
-@app.route("/eliminar_usuario", methods=["POST"])
-def eliminar_usuario():
-    if not con.is_connected():
-        con.reconnect()
+    page.navigation_bar = ft.NavigationBar(
+        destinations=[
+            # Buscar icons en ---> https://gallery.flet.dev/icons-browser/
+            ft.NavigationBarDestination(icon=ft.icons.SAVE, label="Guardar"),
+            ft.NavigationBarDestination(icon=ft.icons.SEARCH, label="Buscar"),
+            ft.NavigationBarDestination(icon=ft.icons.AUTO_GRAPH, label="Analisis")
+        ],
+        border=ft.Border(
+            top=ft.BorderSide(color=ft.cupertino_colors.SYSTEM_GREY2, width=0)
+        ),
+        on_change=navigation_bar_change
+    )
 
-    id = request.form["id"]
+    page.add(
+        row_lbl_temperatura,
+        row_txt_temperatura,
+        row_lbl_humedad,
+        row_txt_humedad,
+        row_btn_guardar
+    )
 
-    cursor = con.cursor(dictionary=True)
-    cursor.execute("DELETE FROM tst0_usuarios WHERE Id_Usuario = %s", (id,))
-    con.commit()
-    con.close()
-
-    return make_response(jsonify({}))
-
-if __name__ == "__main__":
-    app.run(debug=True)
+ft.app(main)
