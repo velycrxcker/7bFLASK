@@ -1,110 +1,146 @@
-import flet as ft
+from flask import Flask
 
-# pip install requests
-import requests
+from flask import render_template
+from flask import request
+from flask import jsonify, make_response
 
-def main(page: ft.Page):
-    def viewBuscar():
-        print("view buscar")
-        row_lbl_temperatura.visible = False
-        row_txt_temperatura.visible = False
-        row_lbl_humedad.visible     = False
-        row_txt_humedad.visible     = False
-        row_btn_guardar.visible     = False
+import pusher
 
-        lbl_temperatura.visible = False
-        txt_temperatura.visible = False
-        lbl_humedad.visible     = False
-        txt_humedad.visible     = False
+import mysql.connector
+import datetime
+import pytz
 
-    def navigation_bar_change(event):
-        print("navigation bar change")
-        print(event)
+con = mysql.connector.connect(
+    host="185.232.14.52",
+    database="u760464709_tst_sep",
+    user="u760464709_tst_sep_usr",
+    password="dJ0CIAFF="
+)
 
-        data = event.data
+app = Flask(__name__)
 
-        if data == "1":
-            viewBuscar()
+@app.route("/")
+def index():
+    con.close()
 
-    def btn_guardar_click(event):
-        url     = "https://flask-ovh6.onrender.com/guardar"
-        payload = {
-            "id": "",
-            "temperatura": txt_temperatura.value,
-            "humedad": txt_humedad.value
-        }
+    return render_template("app.html")
 
-        print("payload")
-        print(payload)
+@app.route("/alumnos")
+def alumnos():
+    con.close()
 
-        x = requests.post(url, data=payload)
+    return render_template("alumnos.html")
 
-        print("response")
-        print(x.text)
+@app.route("/alumnos/guardar", methods=["POST"])
+def alumnosGuardar():
+    con.close()
+    matricula      = request.form["txtMatriculaFA"]
+    nombreapellido = request.form["txtNombreApellidoFA"]
 
-        txt_temperatura.value = ""
-        txt_humedad.value     = ""
+    return f"Matrícula {matricula} Nombre y Apellido {nombreapellido}"
 
-    lbl_temperatura = ft.Text(value="Temperatura:")
-    lbl_humedad     = ft.Text(value="Humedad:")
-
-    txt_temperatura = ft.TextField(value="", text_align=ft.TextAlign.LEFT, width=200, hint_text="Temperatura:")
-    txt_humedad     = ft.TextField(value="", text_align=ft.TextAlign.LEFT, width=200, hint_text="Humedad:")
-    btn_guardar     = ft.ElevatedButton(text="Guardar", on_click=btn_guardar_click)
-
-    # RowProductA1
-    row_lbl_temperatura = ft.Row([
-        ft.Container(expand=1, content=ft.Text("")),
-        ft.Container(expand=3, content=ft.Row([lbl_temperatura])),
-        ft.Container(expand=1, content=ft.Text(""))
-    ])
-    row_txt_temperatura =ft.Row([
-        ft.Container(expand=1, content=ft.Text("")),
-        ft.Container(expand=3, content=ft.Row([txt_temperatura])),
-        ft.Container(expand=1, content=ft.Text(""))
-    ])
-
-    # RowProductA2
-    row_lbl_humedad = ft.Row([
-        ft.Container(expand=1, content=ft.Text("")),
-        ft.Container(expand=3, content=ft.Row([lbl_humedad])),
-        ft.Container(expand=1, content=ft.Text(""))
-    ])
-
-    # RowProductB1
-    row_txt_humedad = ft.Row([
-        ft.Container(expand=1, content=ft.Text("")),
-        ft.Container(expand=3, content=ft.Row([txt_humedad])),
-        ft.Container(expand=1, content=ft.Text(""))
-    ])
-    row_btn_guardar = ft.Row([
-        ft.Container(expand=1, content=ft.Text("")),
-        ft.Container(expand=3, content=ft.Row([btn_guardar])),
-        ft.Container(expand=1, content=ft.Text(""))
-    ])
-
-    page.title    = "App"
-    page.adaptive = True
-
-    page.navigation_bar = ft.NavigationBar(
-        destinations=[
-            # Buscar icons en ---> https://gallery.flet.dev/icons-browser/
-            ft.NavigationBarDestination(icon=ft.icons.SAVE, label="Guardar"),
-            ft.NavigationBarDestination(icon=ft.icons.SEARCH, label="Buscar"),
-            ft.NavigationBarDestination(icon=ft.icons.AUTO_GRAPH, label="Analisis")
-        ],
-        border=ft.Border(
-            top=ft.BorderSide(color=ft.cupertino_colors.SYSTEM_GREY2, width=0)
-        ),
-        on_change=navigation_bar_change
+# Código usado en las prácticas
+def notificarActualizacionTemperaturaHumedad():
+    pusher_client = pusher.Pusher(
+        app_id="1714541",
+        key="2df86616075904231311",
+        secret="2f91d936fd43d8e85a1a",
+        cluster="us2",
+        ssl=True
     )
 
-    page.add(
-        row_lbl_temperatura,
-        row_txt_temperatura,
-        row_lbl_humedad,
-        row_txt_humedad,
-        row_btn_guardar
-    )
+    pusher_client.trigger("canalRegistrosTemperaturaHumedad", "registroTemperaturaHumedad", args)
 
-ft.app(main)
+@app.route("/buscar")
+def buscar():
+    if not con.is_connected():
+        con.reconnect()
+
+    cursor = con.cursor(dictionary=True)
+    cursor.execute("""
+    SELECT Id_Log, Temperatura, Humedad, DATE_FORMAT(Fecha_Hora, '%d/%m/%Y') AS Fecha, DATE_FORMAT(Fecha_Hora, '%H:%i:%s') AS Hora FROM sensor_log
+    ORDER BY Id_Log DESC
+    LIMIT 10 OFFSET 0
+    """)
+    registros = cursor.fetchall()
+
+    con.close()
+
+    return make_response(jsonify(registros))
+
+@app.route("/guardar", methods=["POST"])
+def guardar():
+    if not con.is_connected():
+        con.reconnect()
+
+    id          = request.form["id"]
+    temperatura = request.form["temperatura"]
+    humedad     = request.form["humedad"]
+    fechahora   = datetime.datetime.now(pytz.timezone("America/Matamoros"))
+    
+    cursor = con.cursor()
+
+    if id:
+        sql = """
+        UPDATE sensor_log SET
+        Temperatura = %s,
+        Humedad     = %s
+        WHERE Id_Log = %s
+        """
+        val = (temperatura, humedad, id)
+    else:
+        sql = """
+        INSERT INTO sensor_log (Temperatura, Humedad, Fecha_Hora)
+                        VALUES (%s,          %s,      %s)
+        """
+        val =                  (temperatura, humedad, fechahora)
+    
+    cursor.execute(sql, val)
+    con.commit()
+    con.close()
+
+    notificarActualizacionTemperaturaHumedad()
+
+    return make_response(jsonify({}))
+
+@app.route("/editar", methods=["GET"])
+def editar():
+    if not con.is_connected():
+        con.reconnect()
+
+    id = request.args["id"]
+
+    cursor = con.cursor(dictionary=True)
+    sql    = """
+    SELECT Id_Log, Temperatura, Humedad FROM sensor_log
+    WHERE Id_Log = %s
+    """
+    val    = (id,)
+
+    cursor.execute(sql, val)
+    registros = cursor.fetchall()
+    con.close()
+
+    return make_response(jsonify(registros))
+
+@app.route("/eliminar", methods=["POST"])
+def eliminar():
+    if not con.is_connected():
+        con.reconnect()
+
+    id = request.form["id"]
+
+    cursor = con.cursor(dictionary=True)
+    sql    = """
+    DELETE FROM sensor_log
+    WHERE Id_Log = %s
+    """
+    val    = (id,)
+
+    cursor.execute(sql, val)
+    con.commit()
+    con.close()
+
+    notificarActualizacionTemperaturaHumedad()
+
+    return make_response(jsonify({}))
